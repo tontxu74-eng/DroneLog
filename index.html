@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
-    <title>DroneLog Pro Local</title>
+    <title>DroneLog</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/906/906377.png">
@@ -13,6 +13,8 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
         body { -webkit-tap-highlight-color: transparent; user-select: none; }
         input, select { user-select: auto; }
@@ -26,6 +28,30 @@
     <div id="root"></div>
 
     <script type="text/babel">
+        // ==========================================
+        // NUEVO: INICIALIZACIÓN DE FIREBASE
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCbUveA8OzvbtUzHqfTARyBeMNG070Cbdc",
+            authDomain: "dronelog-c70ea.firebaseapp.com",
+            projectId: "dronelog-c70ea",
+            storageBucket: "dronelog-c70ea.firebasestorage.app",
+            messagingSenderId: "1040688661151",
+            appId: "1:1040688661151:web:00417d4562d964a4f198aa"
+        };
+
+        // Iniciar Firebase (comprobando que no se inicie dos veces)
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+
+        // Activar la persistencia offline (vital para zonas sin cobertura)
+        db.enablePersistence().catch((err) => {
+            console.error("Error activando persistencia offline:", err.code);
+        });
+        // ==========================================
+
         // --- SISTEMA DE ICONOS ---
         const Icons = {
             Plane: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h20"/><path d="M20 12v-2a2 2 0 0 0-2-2h-3.5L10 3H6l2 5H5a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h3l-2 5h4l4.5-5H18a2 2 0 0 0 2-2v-2"/></svg>,
@@ -751,7 +777,7 @@
                                             placeholder="Ej: 113 [5], 114 [8]"
                                         />
                                         <p className="text-[10px] text-slate-500 mt-1">Edita el texto manualmente si necesitas corregir algo.</p>
-                                                                                                 
+                                                                                                                                                                                                                                                                                                                                             
                                         {/* --- NUEVO SELECTOR MULTIPLE EDICIÓN --- */}
                                     <div className="col-span-2">
                                         <label className="text-xs text-slate-500 font-bold uppercase block mb-2">ConOps (Editar Múltiples)</label>
