@@ -71,14 +71,21 @@
             AlertTriangle: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>,
         };
 
-        // --- GESTOR DE ALMACENAMIENTO LOCAL ---
+        // --- GESTOR DE ALMACENAMIENTO LOCAL Y NUBE ---
         const Storage = {
             get: (key, fallback) => {
                 const data = localStorage.getItem(key);
                 return data ? JSON.parse(data) : fallback;
             },
             set: (key, value) => {
+                // 1. Guardar en el móvil (instantáneo)
                 localStorage.setItem(key, JSON.stringify(value));
+                
+                // 2. Enviar a Firebase (silencioso y de fondo)
+                db.collection('droneLogApp').doc('miConfiguracion').set({
+                    [key]: value
+                }, { merge: true })
+                .catch(err => console.error("Error guardando en la nube:", err));
             }
         };
 
@@ -124,6 +131,7 @@
 
             // CARGA INICIAL DE DATOS
             React.useEffect(() => {
+                // 1. Primero cargamos lo local para que la app abra al instante
                 try {
                     setPilots(Storage.get('pilots', ['AQUILINO', 'DELGADO', 'QUINTANA', 'RAMÍREZ', 'RODRÍGUEZ']));
                     setDrones(Storage.get('drones', ['A173', 'A193', 'A220', 'A306', 'A504']));
@@ -131,14 +139,27 @@
                     setConOpsList(Storage.get('conops', ['ConOps 01 [120m]', 'ConOps 02 [400m]', 'ConOps 03 [TRA]', 'ConOps 04 [C3]']));
                     setFlightLogs(Storage.get('flightLogs', []));
                     setConopsStatus(Storage.get('conopsStatus', {}));
-                    
-                    // Cargar el nombre del "Dueño" de la app
-                    const storedMyName = Storage.get('myPilotName', '');
-                    setMyPilotName(storedMyName);
+                    setMyPilotName(Storage.get('myPilotName', ''));
                 } catch (e) {
-                    console.error("Error cargando datos", e);
-                    setErrorMsg("Error cargando memoria local.");
+                    console.error("Error cargando memoria local:", e);
                 }
+
+                // 2. Luego pedimos a Firebase los datos reales para sincronizar
+                db.collection('droneLogApp').doc('miConfiguracion').get().then((doc) => {
+                    if (doc.exists) {
+                        const data = doc.data();
+                        // Si Firebase tiene datos, machacamos los del móvil para actualizarlos
+                        if (data.pilots) { setPilots(data.pilots); localStorage.setItem('pilots', JSON.stringify(data.pilots)); }
+                        if (data.drones) { setDrones(data.drones); localStorage.setItem('drones', JSON.stringify(data.drones)); }
+                        if (data.batteries) { setBatteries(data.batteries); localStorage.setItem('batteries', JSON.stringify(data.batteries)); }
+                        if (data.conops) { setConOpsList(data.conops); localStorage.setItem('conops', JSON.stringify(data.conops)); }
+                        if (data.flightLogs) { setFlightLogs(data.flightLogs); localStorage.setItem('flightLogs', JSON.stringify(data.flightLogs)); }
+                        if (data.conopsStatus) { setConopsStatus(data.conopsStatus); localStorage.setItem('conopsStatus', JSON.stringify(data.conopsStatus)); }
+                        if (data.myPilotName) { setMyPilotName(data.myPilotName); localStorage.setItem('myPilotName', JSON.stringify(data.myPilotName)); }
+                    }
+                }).catch((err) => {
+                    console.error("No se pudo sincronizar con Firebase", err);
+                });
             }, []);
 
             // Helper para guardar el piloto principal
